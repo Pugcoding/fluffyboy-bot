@@ -1,0 +1,8 @@
+{
+    "python.testing.pytestArgs": [
+        "misc_ignore"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "git.ignoreLimitWarning": true
+}
