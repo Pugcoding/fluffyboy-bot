@@ -214,16 +214,14 @@ async def check_if_blocked(ctx,user, author):
         if it is, check if the author is blocked
 
     """
-    if str(user.id) in blocked:
-        if str(author.id) in blocked[str(user.id)]["blocked"]:
-            if blocked[str(user.id)]["blocked"][str(author.id)] == "true":
-                return True
-            else:
-                return False
-        else:
+    if not (str(user.id) in blocked):
+        return False
+    if not (str(author.id) in blocked[str(user.id)]["blocked"]):
             return False
-            
-
+    if blocked[str(user.id)]["blocked"][str(author.id)] == "true":
+                return True
+    else:
+                return False            
 
 @bot.slash_command(name="unblock", description="Unblock a user from using you in interaction commands")
 async def unblock(ctx, user: discord.Option(discord.User, description="The user you want to unblock")):
@@ -462,8 +460,28 @@ async def kill_error(ctx, error):
         await ctx.respond(f"Slow down! You can KILL everyone again in {error.retry_after:.2f} seconds.",
                           ephemeral=True)
 
+@bot.slash_command(name="bugreport", description="Form to report a bug")
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def bugreport(ctx):
+    await ctx.respond("Link to the form: \"https://github.com/Pugcoding/fluffyboy-bot/issues/new\"")
 
+@bugreport.error
+async def bugreport_error(ctx,error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You can submit another form again in {error.retry_after:.2f} seconds.",ephemeral =True)
 # Need to implement pinheads cog loader
+
+@bot.slash_command(name="randomralsei", description="Get a random post from r/Ralsei")
+@commands.cooldown(1,10, commands.BucketType.user)
+async def randomralsei(ctx):
+    post = redditeasy.Subreddit()
+    postoutput = post.get_post(subreddit="Ralsei")
+    await ctx.respond(f"Here is your Ralsei!\n{postoutput.post_url}")
+
+@bugreport.error
+async def randomralsei_error(ctx,error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You'll get your Ralsei later in {error.retry_after:.2f} seconds.", ephemeral = True)
 
 bot.load_extension('cogs.roles')
 bot.load_extension('cogs.roles_two')
