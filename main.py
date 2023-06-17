@@ -459,15 +459,29 @@ async def kill_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.respond(f"Slow down! You can KILL everyone again in {error.retry_after:.2f} seconds.",
                           ephemeral=True)
+
 @bot.slash_command(name="bugreport", description="Form to report a bug")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def bugreport(ctx):
     await ctx.respond("Link to the form: \"https://github.com/Pugcoding/fluffyboy-bot/issues/new\"")
+
 @bugreport.error
-async def bugreport_errorer(ctx,error):
+async def bugreport_error(ctx,error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.respond(f"Slow down! You can submit another form again in {error.retry_after:.2f} seconds.",ephemeral =True)
 # Need to implement pinheads cog loader
+
+@bot.slash_command(name="randomralsei", description="Get a random post from r/Ralsei")
+@commands.cooldown(1,10, commands.BucketType.user)
+async def randomralsei(ctx):
+    post = redditeasy.Subreddit()
+    postoutput = post.get_post(subreddit="Ralsei")
+    await ctx.respond(f"Here is your Ralsei!\n{postoutput.post_url}")
+
+@bugreport.error
+async def randomralsei_error(ctx,error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You'll get your Ralsei later in {error.retry_after:.2f} seconds.", ephemeral = True)
 
 bot.load_extension('cogs.roles')
 bot.load_extension('cogs.roles_two')
