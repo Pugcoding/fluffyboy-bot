@@ -58,13 +58,19 @@ no_emoji = (1064813350548164670)
 star_emoji = (1063628977027158048)
 
 ralsei_sprites = ["angry", "classic", "happy", "light_blush", "light_classic", "light_happy", "lookdown",
-                  "lookdown_blush", "sad", "sad_blush", "sad_fangs", "ser", "stare"]
+                  "lookdown_blush", "sad", "sad_blush", "sad_fangs", "ser", "stare","pirate"]
+
+# Thanks to Tom for the Pirate Ralsei Sprite!
+
 """
 -Pug April 18th 2023 
 I Like Leaving little notes like this :3
 
 
 """
+
+    
+
 # API Keys
 global twitter_client
 twitter_client = tweepy.Client(str(os.getenv('TWEEPY')))
@@ -72,25 +78,28 @@ twitter_client = tweepy.Client(str(os.getenv('TWEEPY')))
 
 
 async def say(text, sprite, ctx):
-    text, sprite = text.lower(), sprite.lower()
-    if sprite not in ralsei_sprites:
-        await ctx.respond("Invalid sprite!", ephemeral=True)
-    elif profanity.contains_profanity(text):
-        await ctx.respond("No swearing!", ephemeral=True)
-    elif len(text) > 72:
-        await ctx.respond("Text too long!", ephemeral=True)
+    text, sprite = text.lower(), sprite.lower() # make sure everything is lowercase
+    if sprite not in ralsei_sprites: # check if sprite is valid
+        await ctx.respond("Invalid sprite!", ephemeral=True) # if not, send error message
+    elif profanity.contains_profanity(text): # check if text contains profanity
+        await ctx.respond("No swearing!", ephemeral=True) # if so, send error message
+    elif len(text) > 72: # check if text is too long
+        await ctx.respond("Text too long!", ephemeral=True) # if so, send error message
     else:
-        img_text = '\n'.join(textwrap.wrap(text, 26))
+        img_text = '\n'.join(textwrap.wrap(text, 26)) # wrap text
 
-        im = Image.open(f"ralsei_faces/{sprite}.png")
-        fnt = ImageFont.truetype("DTM-Mono.otf", 24)
-        d = ImageDraw.Draw(im)
-        d.multiline_text((160, 40), img_text, font=fnt, fill="#ffffff")
-        filename = f"result.png"
-        im.save(filename)
-        await ctx.respond(file=discord.File(open(filename, "rb")))
-
-langs = []
+        im = Image.open(f"ralsei_faces/{sprite}.png") # open image
+        fnt = ImageFont.truetype("DTM-Mono.otf", 24) # load font and size
+        d = ImageDraw.Draw(im) # draw image
+        d.multiline_text((160, 40), img_text, font=fnt, fill="#ffffff") # draw text
+        filename = f"result.png" # set filename
+        im.save(filename)    # save image
+        await ctx.respond(file=discord.File(open(filename, "rb"))) # send image
+"""
+@bot.slash_command(name='bugreport',description='report a bug')
+async def bugreport(ctx):
+    await ctx.send_modal(BugReportForm(title="Bug Report"))
+"""
 
 @bot.event
 async def on_ready():
@@ -103,56 +112,26 @@ async def echo(ctx, message: str, channel: discord.TextChannel = None):
     """
     Allows you to send messages as the bot
     """
-    if channel == None:
+    no_channel_selected = bool(channel == None)
+    if no_channel_selected:
         await ctx.respond("please specify a channel", ephemeral=True)
     await channel.send(message)
     await ctx.respond("Message sent", ephemeral=True)
 
 
-@bot.slash_command(name="load_cog")
-@commands.has_permissions(manage_messages=True)
-async def load_cog(ctx, cog: str):
-
-    """
-    This is where you might add pinhead's version of the load cog command
-    """
-    try:
-        bot.load_extension(f'cogs.{cog}')
-        await ctx.respond(f"Loaded {cog}", ephemeral=True)
-    except:
-        await ctx.respond(f"Failed to load {cog}", ephemeral=True)
-
 
 
 @bot.event
 async def on_message(message):
-
-    if message.author == bot.user:  # Prevents bot from responding to itself
+    message_is_from_bot = bool(message.author == bot.user)
+    if message_is_from_bot:  # Prevents bot from responding to itself
         return
-    
-    """
-    
-    Removed conie easteregg :(
-    
-
-    """
-
-    
-
     if "boykisser" in message.content.lower() or "kissing boys" in message.content.lower():
         roll = random.randint(1, 20)
         if roll == 1:
             await message.channel.send("oohh you like kissing boys dont you...")
             # change name to boykisser
             await message.author.edit(nick=(message.author.name + " ( boykisser)"))
-
-
-    
-
-
-
-
-
 
 
 @bot.slash_command(name="angel", description="Get information about angel aka. dailyralsei")
@@ -184,13 +163,18 @@ async def newest_tweet(ctx):
                 "The Newest Tweet From Daily Ralsei: " + "https://twitter.com/ralseihugs/status/" + tweet.id)
             break
 
-
-# make sure user has admin perms
-
-
-
 @bot.slash_command(name="block", description="Block a user from using you in interaction commands")
 async def block(ctx, user: discord.Option(discord.User, description="The user you want to block")):
+    """
+    Blocks a user from using the bot in interaction commands.
+
+    Args:
+        ctx (discord.InteractionContext): The context of the interaction.
+        user (discord.User): The user to be blocked.
+
+    Returns:
+        None
+    """
     with open("blacklist.json", "r") as f:
         blocked = json.load(f)
         if str(ctx.author.id) not in blocked:
@@ -206,22 +190,13 @@ async def block(ctx, user: discord.Option(discord.User, description="The user yo
                 json.dump(blocked, f)
                 await ctx.respond("User has been blocked from using you in interaction commands")
 
-async def check_if_blocked(ctx,user, author):
+async def check_if_blocked(ctx, user, author):
     with open("blacklist.json", "r") as f:
         blocked = json.load(f)
-    """
-       check if the user_id is even in the json file
-        if it is, check if the author is blocked
-
-    """
-    if str(user.id) in blocked:
-        if str(author.id) in blocked[str(user.id)]["blocked"]:
-            if blocked[str(user.id)]["blocked"][str(author.id)] == "true":
-                return True
-            else:
-                return False
-        else:
-            return False
+    if str(user.id) in blocked and blocked[str(user.id)]["blocked"].get(str(author.id), "false") == "true":
+        ctx.respond("You have been blocked from using this command by the user")
+        return True
+    
             
 
 
@@ -268,7 +243,6 @@ async def dance(ctx):
 @commands.cooldown(1, 25, commands.BucketType.user)
 async def kiss(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     await ctx.respond(f"{ctx.author.mention} gave {user.mention} a kiss!")
     roll = random.randint(1, 10)
@@ -303,7 +277,6 @@ async def kiss_error(ctx, error):
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def stab(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     await ctx.respond(f"{ctx.author.mention} stabbed {user.mention}!")
 
@@ -345,7 +318,6 @@ async def clear(ctx, amount: discord.Option(int)):
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def cuddle(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     
     await ctx.respond(f"{ctx.author.mention} cuddled {user.mention}!")
@@ -461,6 +433,15 @@ async def kill_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.respond(f"Slow down! You can KILL everyone again in {error.retry_after:.2f} seconds.",
                           ephemeral=True)
+        
+
+@bot.slash_command(name='pet',description='pet somebody')
+@commands.cooldown(1,10, commands.BucketType.user)
+async def pet(ctx,member: discord.Option(discord.Member)):
+    message_options =[f"{ctx.author.mention} pet {member.mention}",f"{ctx.author.mention} gave {member.mention} headpats",f"{member.mention} was pet by {ctx.author.mention}"]
+    await ctx.respond(random.choice(message_options))
+    
+    
 
 
 # Need to implement pinheads cog loader
