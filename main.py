@@ -393,6 +393,18 @@ async def cookie_error(ctx, error):
 
 # group hug command
 
+@bot.slash_command(name="boop", desription="boop someone!")
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def boop(ctx, user: discord.Option(discord.Member)):
+    await ctx.respond(f"{ctx.author.mention} booped {user.mention}!")
+    
+
+@boop.error
+async def boop_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You can boop someone again in {error.retry_after:.2f} seconds.",
+                          ephemeral=True)
+
 @bot.slash_command(name="group_hug", description="Give everyone a hug!")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def group_hug(ctx):
@@ -452,3 +464,18 @@ bot.load_extension('cogs.roles_three')
 bot.load_extension('cogs.roles_four')
 
 bot.run(TOKEN)
+
+"""
+code ran past this point will not be run
+
+
+"""
+
+
+
+
+
+
+
+
+
