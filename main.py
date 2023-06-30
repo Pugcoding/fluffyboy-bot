@@ -76,7 +76,7 @@ I Like Leaving little notes like this :3
 global twitter_client
 twitter_client = tweepy.Client(str(os.getenv('TWEEPY')))
 
-
+#birthday
 @bot.slash_command(name="set_birthday", description="Set your birthday!")
 async def set_birthday(ctx, day: int, month: int):
     months = ["January", "February", "March", "April", "May", "June", "July", "August", "September","October","November","December"]
