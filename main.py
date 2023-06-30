@@ -65,6 +65,32 @@ I Like Leaving little notes like this :3
 
 
 """
+class BugReportForm(discord.ui.Modal):
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.bot = bot  # this is a bad way to do this but i dont care
+        
+
+        self.add_item(discord.ui.InputText(label="What is the bug?"))
+        self.add_item(discord.ui.InputText(label="which command is affected?"))
+        self.add_item(discord.ui.InputText(label="Any other information?", placeholder="Optional",style=discord.InputTextStyle.long))
+        
+        
+    async def callback(self, interaction: discord.Interaction):
+        pug_id = 564589970774425601
+        channel_submit = 1114300983443456000
+        
+        embed = discord.Embed(title="Bug Report", description="A bug report has been submitted", color=discord.Color.green())
+        embed.add_field(name="Bug", value=self.values[0])
+        embed.add_field(name="Command", value=self.values[1])
+        embed.add_field(name="Other", value=self.values[2])
+        embed.set_footer(text=f"Submitted by {interaction.user.name}", icon_url=interaction.user.avatar)
+        await self.bot.get_channel(channel_submit).send(embed=embed)
+        
+        
+
+    
+
 # API Keys
 global twitter_client
 twitter_client = tweepy.Client(str(os.getenv('TWEEPY')))
@@ -89,8 +115,11 @@ async def say(text, sprite, ctx):
         filename = f"result.png"
         im.save(filename)
         await ctx.respond(file=discord.File(open(filename, "rb")))
-
-langs = []
+"""
+@bot.slash_command(name='bugreport',description='report a bug')
+async def bugreport(ctx):
+    await ctx.send_modal(BugReportForm(title="Bug Report"))
+"""
 
 @bot.event
 async def on_ready():
@@ -109,19 +138,6 @@ async def echo(ctx, message: str, channel: discord.TextChannel = None):
     await ctx.respond("Message sent", ephemeral=True)
 
 
-@bot.slash_command(name="load_cog")
-@commands.has_permissions(manage_messages=True)
-async def load_cog(ctx, cog: str):
-
-    """
-    This is where you might add pinhead's version of the load cog command
-    """
-    try:
-        bot.load_extension(f'cogs.{cog}')
-        await ctx.respond(f"Loaded {cog}", ephemeral=True)
-    except:
-        await ctx.respond(f"Failed to load {cog}", ephemeral=True)
-
 
 
 @bot.event
@@ -129,30 +145,12 @@ async def on_message(message):
 
     if message.author == bot.user:  # Prevents bot from responding to itself
         return
-    
-    """
-    
-    Removed conie easteregg :(
-    
-
-    """
-
-    
-
     if "boykisser" in message.content.lower() or "kissing boys" in message.content.lower():
         roll = random.randint(1, 20)
         if roll == 1:
             await message.channel.send("oohh you like kissing boys dont you...")
             # change name to boykisser
             await message.author.edit(nick=(message.author.name + " ( boykisser)"))
-
-
-    
-
-
-
-
-
 
 
 @bot.slash_command(name="angel", description="Get information about angel aka. dailyralsei")
@@ -184,13 +182,18 @@ async def newest_tweet(ctx):
                 "The Newest Tweet From Daily Ralsei: " + "https://twitter.com/ralseihugs/status/" + tweet.id)
             break
 
-
-# make sure user has admin perms
-
-
-
 @bot.slash_command(name="block", description="Block a user from using you in interaction commands")
 async def block(ctx, user: discord.Option(discord.User, description="The user you want to block")):
+    """
+    Blocks a user from using the bot in interaction commands.
+
+    Args:
+        ctx (discord.InteractionContext): The context of the interaction.
+        user (discord.User): The user to be blocked.
+
+    Returns:
+        None
+    """
     with open("blacklist.json", "r") as f:
         blocked = json.load(f)
         if str(ctx.author.id) not in blocked:
@@ -206,22 +209,13 @@ async def block(ctx, user: discord.Option(discord.User, description="The user yo
                 json.dump(blocked, f)
                 await ctx.respond("User has been blocked from using you in interaction commands")
 
-async def check_if_blocked(ctx,user, author):
+async def check_if_blocked(ctx, user, author):
     with open("blacklist.json", "r") as f:
         blocked = json.load(f)
-    """
-       check if the user_id is even in the json file
-        if it is, check if the author is blocked
-
-    """
-    if str(user.id) in blocked:
-        if str(author.id) in blocked[str(user.id)]["blocked"]:
-            if blocked[str(user.id)]["blocked"][str(author.id)] == "true":
-                return True
-            else:
-                return False
-        else:
-            return False
+    if str(user.id) in blocked and blocked[str(user.id)]["blocked"].get(str(author.id), "false") == "true":
+        ctx.respond("You have been blocked from using this command by the user")
+        return True
+    
             
 
 
@@ -268,7 +262,6 @@ async def dance(ctx):
 @commands.cooldown(1, 25, commands.BucketType.user)
 async def kiss(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     await ctx.respond(f"{ctx.author.mention} gave {user.mention} a kiss!")
     roll = random.randint(1, 10)
@@ -303,7 +296,6 @@ async def kiss_error(ctx, error):
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def stab(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     await ctx.respond(f"{ctx.author.mention} stabbed {user.mention}!")
 
@@ -345,7 +337,6 @@ async def clear(ctx, amount: discord.Option(int)):
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def cuddle(ctx, user: discord.Option(discord.Member)):
     if await check_if_blocked(ctx, user, ctx.author):
-        await ctx.respond("You have been blocked from using this command on this user")
         return
     
     await ctx.respond(f"{ctx.author.mention} cuddled {user.mention}!")
@@ -461,6 +452,19 @@ async def kill_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.respond(f"Slow down! You can KILL everyone again in {error.retry_after:.2f} seconds.",
                           ephemeral=True)
+        
+
+@bot.slash_command(name='pet',description='pet somebody')
+@commands.cooldown(1,10, commands.BucketType.user)
+async def pet(ctx,member: discord.Option(discord.Member)):
+    message_options =[f"{ctx.author.mention} pet {member.mention}",f"{ctx.author.mention} gave {member.mention} headpats",f"{member.mention} was pet by {ctx.author.mention}"]
+    await ctx.respond(random.choice(message_options))
+    
+    
+
+
+
+    
 
 
 # Need to implement pinheads cog loader
