@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import math
+from discord.ext import tasks
 import textwrap
 import discord
 from discord import Webhook
@@ -58,36 +59,16 @@ no_emoji = (1064813350548164670)
 star_emoji = (1063628977027158048)
 
 ralsei_sprites = ["angry", "classic", "happy", "light_blush", "light_classic", "light_happy", "lookdown",
-                  "lookdown_blush", "sad", "sad_blush", "sad_fangs", "ser", "stare"]
+                  "lookdown_blush", "sad", "sad_blush", "sad_fangs", "ser", "stare","pirate"]
+
+# Thanks to Tom for the Pirate Ralsei Sprite!
+
 """
 -Pug April 18th 2023 
 I Like Leaving little notes like this :3
 
 
 """
-class BugReportForm(discord.ui.Modal):
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.bot = bot  # this is a bad way to do this but i dont care
-        
-
-        self.add_item(discord.ui.InputText(label="What is the bug?"))
-        self.add_item(discord.ui.InputText(label="which command is affected?"))
-        self.add_item(discord.ui.InputText(label="Any other information?", placeholder="Optional",style=discord.InputTextStyle.long))
-        
-        
-    async def callback(self, interaction: discord.Interaction):
-        pug_id = 564589970774425601
-        channel_submit = 1114300983443456000
-        
-        embed = discord.Embed(title="Bug Report", description="A bug report has been submitted", color=discord.Color.green())
-        embed.add_field(name="Bug", value=self.values[0])
-        embed.add_field(name="Command", value=self.values[1])
-        embed.add_field(name="Other", value=self.values[2])
-        embed.set_footer(text=f"Submitted by {interaction.user.name}", icon_url=interaction.user.avatar)
-        await self.bot.get_channel(channel_submit).send(embed=embed)
-        
-        
 
     
 
@@ -96,25 +77,85 @@ global twitter_client
 twitter_client = tweepy.Client(str(os.getenv('TWEEPY')))
 
 
+@bot.slash_command(name="set_birthday", description="Set your birthday!")
+async def set_birthday(ctx, day: int, month: int):
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September","October","November","December"]
+    if month > 12 or month < 1:
+        await ctx.respond("Invalid month!", ephemeral=True)
+    elif day > 31 or day < 1:
+        await ctx.respond("Invalid day!", ephemeral=True)
+    else:
+        birthday = f"{months[month-1]} {day}"
+        # open file
+        with open('birthdays.json', 'r') as openfile:
+            # Reading from json file
+            birthdays = json.load(openfile)
+        # check if user is in file
+        if str(ctx.author.id) in birthdays:
+            await ctx.respond("Birthday already set!", ephemeral=True)
+        else:
+            birthdays[str(ctx.author.id)] = birthday
+            with open('birthdays.json', 'w') as openfile:
+                # Saving to json file
+                json.dump(birthdays, openfile, indent=4)
+            await ctx.respond(f"Birthday set to {birthday}!", ephemeral=True)
+    
+
+"""
+Thanks to Tom for the Birthday code!
+"""
+
+@tasks.loop(minutes=5)
+async def birthday_check():
+    from datetime import datetime
+    x = datetime.now()
+    today = x.strftime("%B %d")
+
+        # open file
+    with open('birthdays.json', "r") as f:
+        # this turns into a dictionary
+        birthdays = json.load(f)
+    
+    for people in birthdays:
+        user_birthday = birthdays[people]
+        if user_birthday == today:
+            print("Birthday!")
+            # give them a role
+            guild = bot.get_guild(1063291660496293928)
+            people = guild.get_member(int(people))
+            role = guild.get_role(1124219402750013472)
+            await people.add_roles(role)
+        else:
+            # print todays date and the birthday
+            print(today)
+            print(user_birthday)
+            # check if they have the role and remove it
+            guild = bot.get_guild(1063291660496293928)
+            people = guild.get_member(int(people))
+            role = guild.get_role(1124219402750013472)
+            if role in people.roles:
+                await people.remove_roles(role)
+    
+
 
 async def say(text, sprite, ctx):
-    text, sprite = text.lower(), sprite.lower()
-    if sprite not in ralsei_sprites:
-        await ctx.respond("Invalid sprite!", ephemeral=True)
-    elif profanity.contains_profanity(text):
-        await ctx.respond("No swearing!", ephemeral=True)
-    elif len(text) > 72:
-        await ctx.respond("Text too long!", ephemeral=True)
+    text, sprite = text.lower(), sprite.lower() # make sure everything is lowercase
+    if sprite not in ralsei_sprites: # check if sprite is valid
+        await ctx.respond("Invalid sprite!", ephemeral=True) # if not, send error message
+    elif profanity.contains_profanity(text): # check if text contains profanity
+        await ctx.respond("No swearing!", ephemeral=True) # if so, send error message
+    elif len(text) > 72: # check if text is too long
+        await ctx.respond("Text too long!", ephemeral=True) # if so, send error message
     else:
-        img_text = '\n'.join(textwrap.wrap(text, 26))
+        img_text = '\n'.join(textwrap.wrap(text, 26)) # wrap text
 
-        im = Image.open(f"ralsei_faces/{sprite}.png")
-        fnt = ImageFont.truetype("DTM-Mono.otf", 24)
-        d = ImageDraw.Draw(im)
-        d.multiline_text((160, 40), img_text, font=fnt, fill="#ffffff")
-        filename = f"result.png"
-        im.save(filename)
-        await ctx.respond(file=discord.File(open(filename, "rb")))
+        im = Image.open(f"ralsei_faces/{sprite}.png") # open image
+        fnt = ImageFont.truetype("DTM-Mono.otf", 24) # load font and size
+        d = ImageDraw.Draw(im) # draw image
+        d.multiline_text((160, 40), img_text, font=fnt, fill="#ffffff") # draw text
+        filename = f"result.png" # set filename
+        im.save(filename)    # save image
+        await ctx.respond(file=discord.File(open(filename, "rb"))) # send image
 """
 @bot.slash_command(name='bugreport',description='report a bug')
 async def bugreport(ctx):
@@ -124,6 +165,7 @@ async def bugreport(ctx):
 @bot.event
 async def on_ready():
     print(f'{bot.user.name} has connected to Discord!')
+    birthday_check.start()  
     await bot.change_presence(activity=discord.Game(name="Ralsei Hugging Simulator " + str(datetime.now().year))) # sets to fake game
     
 @bot.slash_command(name="echo", description="Echoes your message ")
@@ -132,7 +174,8 @@ async def echo(ctx, message: str, channel: discord.TextChannel = None):
     """
     Allows you to send messages as the bot
     """
-    if channel == None:
+    no_channel_selected = bool(channel == None)
+    if no_channel_selected:
         await ctx.respond("please specify a channel", ephemeral=True)
     await channel.send(message)
     await ctx.respond("Message sent", ephemeral=True)
@@ -142,8 +185,8 @@ async def echo(ctx, message: str, channel: discord.TextChannel = None):
 
 @bot.event
 async def on_message(message):
-
-    if message.author == bot.user:  # Prevents bot from responding to itself
+    message_is_from_bot = bool(message.author == bot.user)
+    if message_is_from_bot:  # Prevents bot from responding to itself
         return
     if "boykisser" in message.content.lower() or "kissing boys" in message.content.lower():
         roll = random.randint(1, 20)
@@ -412,6 +455,18 @@ async def cookie_error(ctx, error):
 
 # group hug command
 
+@bot.slash_command(name="boop", desription="boop someone!")
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def boop(ctx, user: discord.Option(discord.Member)):
+    await ctx.respond(f"{ctx.author.mention} booped {user.mention}!")
+    
+
+@boop.error
+async def boop_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You can boop someone again in {error.retry_after:.2f} seconds.",
+                          ephemeral=True)
+
 @bot.slash_command(name="group_hug", description="Give everyone a hug!")
 @commands.cooldown(1, 10, commands.BucketType.user)
 async def group_hug(ctx):
@@ -459,11 +514,14 @@ async def kill_error(ctx, error):
 async def pet(ctx,member: discord.Option(discord.Member)):
     message_options =[f"{ctx.author.mention} pet {member.mention}",f"{ctx.author.mention} gave {member.mention} headpats",f"{member.mention} was pet by {ctx.author.mention}"]
     await ctx.respond(random.choice(message_options))
-    
-    
 
 
-
+@pet.error
+async def pet_error(ctx,error):
+    if isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(f"Slow down! You can KILL everyone again in {error.retry_after:.2f} seconds.",
+                          ephemeral=True)
+        
     
 
 
@@ -475,3 +533,18 @@ bot.load_extension('cogs.roles_three')
 bot.load_extension('cogs.roles_four')
 
 bot.run(TOKEN)
+
+"""
+code ran past this point will not be run
+
+
+"""
+
+
+
+
+
+
+
+
+
